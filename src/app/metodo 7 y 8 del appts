@@ -1,0 +1,89 @@
+  // 7. OBTENER TODOS LOS EPISODIOS
+  
+
+  obtenerEpisodios(): void {
+
+    this.cargando = true;
+    this.mensaje = '';
+
+    this.servicio.obtenerEpisodios()
+      .pipe(
+        finalize(() => {
+          this.cargando = false;
+          this.cdr.detectChanges();
+        })
+      )
+      .subscribe({
+
+        next: (respuesta) => {
+
+          this.episodios = respuesta.results;
+
+          console.log(
+            '7. TODOS LOS EPISODIOS:',
+            respuesta
+          );
+
+        },
+
+        error: (error) => {
+
+          console.error('ERROR:', error);
+
+          this.episodios = [];
+          this.mensaje =
+            'Error al obtener los episodios';
+
+        }
+
+      });
+  }
+
+
+  
+  // 8. OBTENER EPISODIO POR ID
+ 
+
+  obtenerEpisodio(id: number): void {
+
+    if (!id || id < 1) {
+      this.mensaje = 'Introduce un ID de episodio válido';
+      return;
+    }
+
+    this.cargando = true;
+    this.mensaje = '';
+
+    this.servicio.obtenerEpisodio(id)
+      .pipe(
+        finalize(() => {
+          this.cargando = false;
+          this.cdr.detectChanges();
+        })
+      )
+      .subscribe({
+
+        next: (episodio) => {
+
+          this.episodios = [episodio];
+
+          console.log(
+            '8. EPISODIO POR ID:',
+            episodio
+          );
+
+        },
+
+        error: (error) => {
+
+          console.error('ERROR:', error);
+
+          this.episodios = [];
+          this.mensaje =
+            'No se encontró el episodio';
+
+        }
+
+      });
+  }
+
