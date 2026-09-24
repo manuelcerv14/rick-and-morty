@@ -1,612 +1,501 @@
-<div class="bg-dark min-vh-100">
+import {
+  ChangeDetectorRef,
+  Component,
+  OnInit,
+  signal
+} from '@angular/core';
 
-  <div class="container py-5">
+import { finalize } from 'rxjs';
 
-    <!-- ==================== ENCABEZADO ==================== -->
+import { RickAndMortyService } from './services/rick-and-morty.service';
+import { Personaje } from './modelo/personaje';
 
-    <header class="text-center text-white mb-5">
+@Component({
+  selector: 'app-root',
+  styleUrl: './app.css',
+  templateUrl: './app.html',
+})
+export class App implements OnInit {
 
-      <span class="badge rounded-pill bg-primary px-3 py-2 mb-3">
-        CHARACTER DATABASE
-      </span>
+  protected readonly title = signal('rick-and-morty');
 
-      <h1 class="display-2 fw-bold mb-3">
-        Rick and Morty
-      </h1>
+  personajes: Personaje[] = [];
+  episodios: any[] = [];
+  ubicaciones: any[] = [];
 
-      <p class="lead text-secondary mb-4">
-        Explora personajes, mundos y dimensiones.
-      </p>
+  cargando = false;
+  mensaje = '';
 
-      <div
-        class="d-inline-flex align-items-center gap-2 bg-secondary bg-opacity-25 border border-secondary rounded-pill px-4 py-2">
+  constructor(
+    private servicio: RickAndMortyService,
+    private cdr: ChangeDetectorRef
+  ) {}
 
-        <span class="text-white fw-semibold">
-          {{ personajes.length }}
-        </span>
+  ngOnInit(): void {
+    this.obtenerPersonajes();
+  }
 
-        <span class="text-secondary">
-          personajes encontrados
-        </span>
 
-      </div>
+ 
+  // 1. OBTENER TODOS LOS PERSONAJES
+ 
 
-    </header>
+  obtenerPersonajes(): void {
 
+    this.cargando = true;
+    this.mensaje = '';
 
-    <!-- ==================== CONTROLES ==================== -->
+    this.servicio.obtenerPersonajes()
+      .pipe(
+        finalize(() => {
+          this.cargando = false;
+          this.cdr.detectChanges();
+        })
+      )
+      .subscribe({
 
-    <section class="card bg-black border border-secondary rounded-4 p-4 mb-5">
+        next: (respuesta) => {
 
-      <h2 class="h4 text-white mb-4">
-         Buscar personajes
-      </h2>
+          this.personajes = respuesta.results;
 
+          console.log(
+            '1. TODOS LOS PERSONAJES:',
+            respuesta
+          );
 
-      <!-- BUSCAR POR NOMBRE -->
+        },
 
-      <div class="row g-3 mb-4">
+        error: (error) => {
 
-        <div class="col-md-8">
+          console.error('ERROR:', error);
 
-          <label class="form-label text-secondary">
-            Buscar por nombre
-          </label>
+          this.personajes = [];
+          this.mensaje = 'Error al obtener los personajes';
 
-          <input
-            #nombreInput
-            type="text"
-            class="form-control bg-dark text-white border-secondary"
-            placeholder="Ejemplo: Rick"
-          >
+        }
 
-        </div>
+      });
+  }
 
-        <div class="col-md-4 d-flex align-items-end">
 
-          <button
-            class="btn btn-primary w-100"
-            (click)="buscarPorNombre(nombreInput.value)"
-          >
-             Buscar nombre
-          </button>
 
-        </div>
+  // 2. OBTENER PERSONAJE POR ID
+ 
 
-      </div>
+  obtenerPersonaje(id: number): void {
 
-
-      <!-- BUSCAR POR ID -->
-
-      <div class="row g-3 mb-4">
-
-        <div class="col-md-8">
-
-          <label class="form-label text-secondary">
-            Buscar personaje por ID
-          </label>
-
-          <input
-            #personajeId
-            type="number"
-            min="1"
-            class="form-control bg-dark text-white border-secondary"
-            placeholder="Ejemplo: 1"
-          >
-
-        </div>
-
-        <div class="col-md-4 d-flex align-items-end">
-
-          <button
-            class="btn btn-outline-light w-100"
-            (click)="obtenerPersonaje(personajeId.valueAsNumber)"
-          >
-             Buscar por ID
-          </button>
-
-        </div>
-
-      </div>
-
-
-      <!-- FILTROS -->
-
-      <div class="row g-3">
-
-        <!-- ESTADO -->
-
-        <div class="col-md-4">
-
-          <label class="form-label text-secondary">
-            Estado
-          </label>
-
-          <select
-            #estadoSelect
-            class="form-select bg-dark text-white border-secondary"
-            (change)="buscarPorEstado(estadoSelect.value)"
-          >
-
-            <option value="" disabled selected>
-              Selecciona un estado
-            </option>
-
-            <option value="alive">
-              Vivo
-            </option>
-
-            <option value="dead">
-              Muerto
-            </option>
-
-            <option value="unknown">
-              Desconocido
-            </option>
-
-          </select>
-
-        </div>
-
-
-        <!-- ESPECIE -->
-
-        <div class="col-md-4">
-
-          <label class="form-label text-secondary">
-            Especie
-          </label>
-
-          <select
-            #especieSelect
-            class="form-select bg-dark text-white border-secondary"
-            (change)="buscarPorEspecie(especieSelect.value)"
-          >
-
-            <option value="" disabled selected>
-              Selecciona una especie
-            </option>
-
-            <option value="Human">
-              Humano
-            </option>
-
-            <option value="Alien">
-              Alien
-            </option>
-
-          </select>
-
-        </div>
-
-
-        <!-- GÉNERO -->
-
-        <div class="col-md-4">
-
-          <label class="form-label text-secondary">
-            Género
-          </label>
-
-          <select
-            #generoSelect
-            class="form-select bg-dark text-white border-secondary"
-            (change)="buscarPorGenero(generoSelect.value)"
-          >
-
-            <option value="" disabled selected>
-              Selecciona un género
-            </option>
-
-            <option value="Male">
-              Masculino
-            </option>
-
-            <option value="Female">
-              Femenino
-            </option>
-
-            <option value="Genderless">
-              Sin género
-            </option>
-
-            <option value="unknown">
-              Desconocido
-            </option>
-
-          </select>
-
-        </div>
-
-      </div>
-
-
-      <!-- BOTÓN TODOS -->
-
-      <div class="mt-4">
-
-        <button
-          class="btn btn-success w-100"
-          (click)="obtenerPersonajes()"
-        >
-           Mostrar todos los personajes
-        </button>
-
-      </div>
-
-    </section>
-
-
-    <!-- ==================== EPISODIOS ==================== -->
-
-    <section class="card bg-black border border-secondary rounded-4 p-4 mb-5">
-
-      <h2 class="h4 text-white mb-4">
-         Episodios
-      </h2>
-
-      <div class="row g-3 mb-4">
-
-        <div class="col-md-6">
-
-          <button
-            class="btn btn-primary w-100"
-            (click)="obtenerEpisodios()"
-          >
-             Obtener todos los episodios
-          </button>
-
-        </div>
-
-        <div class="col-md-6">
-
-          <div class="input-group">
-
-            <input
-              #episodioId
-              type="number"
-              min="1"
-              class="form-control bg-dark text-white border-secondary"
-              placeholder="ID del episodio"
-            >
-
-            <button
-              class="btn btn-outline-light"
-              (click)="obtenerEpisodio(episodioId.valueAsNumber)"
-            >
-              Buscar episodio
-            </button>
-
-          </div>
-
-        </div>
-
-      </div>
-
-
-      @if (episodios.length > 0) {
-
-        <div class="row g-3">
-
-          @for (episodio of episodios; track episodio.id) {
-
-            <div class="col-12 col-md-6 col-lg-4">
-
-              <div class="border border-secondary rounded-3 p-3 h-100">
-
-                <h3 class="h6 text-white">
-                  {{ episodio.name }}
-                </h3>
-
-                <p class="text-secondary mb-1">
-                  {{ episodio.episode }}
-                </p>
-
-                <small class="text-secondary">
-                  {{ episodio.air_date }}
-                </small>
-
-              </div>
-
-            </div>
-
-          }
-
-        </div>
-
-      }
-
-    </section>
-
-
-    <!-- ==================== UBICACIONES ==================== -->
-
-    <section class="card bg-black border border-secondary rounded-4 p-4 mb-5">
-
-      <h2 class="h4 text-white mb-4">
-         Ubicaciones
-      </h2>
-
-      <div class="row g-3 mb-4">
-
-        <div class="col-md-6">
-
-          <button
-            class="btn btn-primary w-100"
-            (click)="obtenerUbicaciones()"
-          >
-             Obtener todas las ubicaciones
-          </button>
-
-        </div>
-
-        <div class="col-md-6">
-
-          <div class="input-group">
-
-            <input
-              #ubicacionId
-              type="number"
-              min="1"
-              class="form-control bg-dark text-white border-secondary"
-              placeholder="ID de ubicación"
-            >
-
-            <button
-              class="btn btn-outline-light"
-              (click)="obtenerUbicacion(ubicacionId.valueAsNumber)"
-            >
-              Buscar ubicación
-            </button>
-
-          </div>
-
-        </div>
-
-      </div>
-
-
-      @if (ubicaciones.length > 0) {
-
-        <div class="row g-3">
-
-          @for (ubicacion of ubicaciones; track ubicacion.id) {
-
-            <div class="col-12 col-md-6 col-lg-4">
-
-              <div class="border border-secondary rounded-3 p-3 h-100">
-
-                <h3 class="h6 text-white">
-                  {{ ubicacion.name }}
-                </h3>
-
-                <p class="text-secondary mb-1">
-                  {{ ubicacion.type }}
-                </p>
-
-                <small class="text-secondary">
-                  {{ ubicacion.dimension }}
-                </small>
-
-              </div>
-
-            </div>
-
-          }
-
-        </div>
-
-      }
-
-    </section>
-
-
-    <!-- ==================== MENSAJE ==================== -->
-
-    @if (cargando) {
-
-      <div class="text-center text-white py-4">
-
-        <div
-          class="spinner-border text-primary mb-3"
-          role="status">
-        </div>
-
-        <p>
-          Cargando información...
-        </p>
-
-      </div>
-
+    if (!id || id < 1) {
+      this.mensaje = 'Introduce un ID válido';
+      return;
     }
 
+    this.cargando = true;
+    this.mensaje = '';
 
-    @if (mensaje) {
+    this.servicio.obtenerPersonaje(id)
+      .pipe(
+        finalize(() => {
+          this.cargando = false;
+          this.cdr.detectChanges();
+        })
+      )
+      .subscribe({
 
-      <div class="alert alert-warning text-center mb-4">
-        {{ mensaje }}
-      </div>
+        next: (personaje) => {
 
+          this.personajes = [personaje];
+
+          console.log(
+            '2. PERSONAJE POR ID:',
+            personaje
+          );
+
+        },
+
+        error: (error) => {
+
+          console.error('ERROR:', error);
+
+          this.personajes = [];
+          this.mensaje = 'No se encontró el personaje';
+
+        }
+
+      });
+  }
+
+
+ 
+  // 3. BUSCAR PERSONAJES POR NOMBRE
+
+
+  buscarPorNombre(nombre: string): void {
+
+    if (!nombre.trim()) {
+      this.obtenerPersonajes();
+      return;
     }
 
+    this.cargando = true;
+    this.mensaje = '';
 
-    <!-- ==================== PERSONAJES ==================== -->
+    this.servicio.obtenerPersonajesPorNombre(nombre)
+      .pipe(
+        finalize(() => {
+          this.cargando = false;
+          this.cdr.detectChanges();
+        })
+      )
+      .subscribe({
 
-    <div class="row g-4">
+        next: (respuesta) => {
 
-      @for (personaje of personajes; track personaje.id) {
+          this.personajes = respuesta.results;
 
-        <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+          console.log(
+            '3. PERSONAJES POR NOMBRE:',
+            respuesta
+          );
 
-          <article
-            class="card h-100 bg-dark border border-secondary rounded-4 overflow-hidden shadow-lg">
+        },
 
-            <!-- IMAGEN -->
+        error: (error) => {
 
-            <div class="position-relative">
+          console.error('ERROR:', error);
 
-              <img
-                [src]="personaje.image"
-                [alt]="personaje.name"
-                class="card-img-top"
-              >
+          this.personajes = [];
+          this.mensaje =
+            'No se encontraron personajes con ese nombre';
 
-              <div class="position-absolute top-0 start-0 p-3">
+        }
 
-                @if (personaje.status === 'Alive') {
+      });
+  }
 
-                  <span class="badge bg-success rounded-pill px-3 py-2">
-                    Vivo
-                  </span>
 
-                } @else if (personaje.status === 'Dead') {
+  
+  // 4. FILTRAR POR ESTADO
+  
 
-                  <span class="badge bg-danger rounded-pill px-3 py-2">
-                    Muerto
-                  </span>
+  buscarPorEstado(estado: string): void {
 
-                } @else {
+    console.log(
+      'ESTADO SELECCIONADO:',
+      estado
+    );
 
-                  <span class="badge bg-secondary rounded-pill px-3 py-2">
-                    Desconocido
-                  </span>
+    this.cargando = true;
+    this.mensaje = '';
 
-                }
+    this.servicio.obtenerPersonajesPorEstado(estado)
+      .pipe(
+        finalize(() => {
+          this.cargando = false;
+          this.cdr.detectChanges();
+        })
+      )
+      .subscribe({
 
-              </div>
+        next: (respuesta) => {
 
-            </div>
+          this.personajes = respuesta.results;
 
+          console.log(
+            '4. PERSONAJES POR ESTADO:',
+            respuesta
+          );
 
-            <!-- INFORMACIÓN -->
+        },
 
-            <div class="card-body p-4">
+        error: (error) => {
 
-              <h2 class="h5 text-white fw-bold mb-4">
-                {{ personaje.name }}
-              </h2>
+          console.error('ERROR:', error);
 
+          this.personajes = [];
+          this.mensaje =
+            'No se encontraron personajes con ese estado';
 
-              <div class="d-flex justify-content-between align-items-center mb-3">
+        }
 
-                <span class="text-secondary">
-                  Especie
-                </span>
+      });
+  }
 
-                <span
-                  class="badge bg-primary bg-opacity-25 text-primary border border-primary">
 
-                  {{ personaje.species }}
+ 
+  // 5. FILTRAR POR ESPECIE
 
-                </span>
 
-              </div>
+  buscarPorEspecie(especie: string): void {
 
+    console.log(
+      'ESPECIE SELECCIONADA:',
+      especie
+    );
 
-              <div class="d-flex justify-content-between align-items-center mb-3">
+    this.cargando = true;
+    this.mensaje = '';
 
-                <span class="text-secondary">
-                  Género
-                </span>
+    this.servicio.obtenerPersonajesPorEspecie(especie)
+      .pipe(
+        finalize(() => {
+          this.cargando = false;
+          this.cdr.detectChanges();
+        })
+      )
+      .subscribe({
 
-                <span class="text-white">
-                  {{ personaje.gender }}
-                </span>
+        next: (respuesta) => {
 
-              </div>
+          this.personajes = respuesta.results;
 
+          console.log(
+            '5. PERSONAJES POR ESPECIE:',
+            respuesta
+          );
 
-              <div class="border-top border-secondary pt-3">
+        },
 
-                <small class="text-secondary d-block mb-1">
-                  ORIGEN
-                </small>
+        error: (error) => {
 
-                <span class="text-white small">
-                  {{ personaje.origin.name }}
-                </span>
+          console.error('ERROR:', error);
 
-              </div>
+          this.personajes = [];
+          this.mensaje =
+            'No se encontraron personajes con esa especie';
 
-            </div>
+        }
 
+      });
+  }
 
-            <!-- INFORMACIÓN EXTRA -->
 
-            <div class="card-footer bg-transparent border-top border-secondary p-3">
+  
+  // 6. FILTRAR POR GÉNERO
+  
 
-              <details>
+  buscarPorGenero(genero: string): void {
 
-                <summary class="btn btn-outline-light w-100 rounded-3">
-                  Ver información
-                </summary>
+    console.log(
+      'GÉNERO SELECCIONADO:',
+      genero
+    );
 
-                <div class="mt-3">
+    this.cargando = true;
+    this.mensaje = '';
 
-                  <div class="bg-black bg-opacity-25 rounded-3 p-3 mb-2">
+    this.servicio.obtenerPersonajesPorGenero(genero)
+      .pipe(
+        finalize(() => {
+          this.cargando = false;
+          this.cdr.detectChanges();
+        })
+      )
+      .subscribe({
 
-                    <small class="text-secondary d-block mb-1">
-                      UBICACIÓN
-                    </small>
+        next: (respuesta) => {
 
-                    <span class="text-white small">
-                      {{ personaje.location.name }}
-                    </span>
+          this.personajes = respuesta.results;
 
-                  </div>
+          console.log(
+            '6. PERSONAJES POR GÉNERO:',
+            respuesta
+          );
 
+        },
 
-                  <div class="bg-black bg-opacity-25 rounded-3 p-3 mb-3">
+        error: (error) => {
 
-                    <small class="text-secondary d-block mb-1">
-                      EPISODIOS
-                    </small>
+          console.error('ERROR:', error);
 
-                    <span class="text-white">
-                      {{ personaje.episode.length }}
-                    </span>
+          this.personajes = [];
+          this.mensaje =
+            'No se encontraron personajes con ese género';
 
-                  </div>
+        }
 
+      });
+  }
 
-                  <a
-                    [href]="personaje.url"
-                    target="_blank"
-                    class="btn btn-primary w-100 rounded-3">
 
-                    Ver personaje
+  
+  // 7. OBTENER TODOS LOS EPISODIOS
+  
 
-                  </a>
+  obtenerEpisodios(): void {
 
-                </div>
+    this.cargando = true;
+    this.mensaje = '';
 
-              </details>
+    this.servicio.obtenerEpisodios()
+      .pipe(
+        finalize(() => {
+          this.cargando = false;
+          this.cdr.detectChanges();
+        })
+      )
+      .subscribe({
 
-            </div>
+        next: (respuesta) => {
 
-          </article>
+          this.episodios = respuesta.results;
 
-        </div>
+          console.log(
+            '7. TODOS LOS EPISODIOS:',
+            respuesta
+          );
 
-      }
+        },
 
-    </div>
+        error: (error) => {
 
+          console.error('ERROR:', error);
 
-    <!-- ==================== FOOTER ==================== -->
+          this.episodios = [];
+          this.mensaje =
+            'Error al obtener los episodios';
 
-    <footer class="text-center border-top border-secondary mt-5 pt-4">
+        }
 
-      <p class="text-secondary mb-0">
-        Rick and Morty API
-      </p>
+      });
+  }
 
-      <small class="text-secondary">
-        Proyecto Angular - 10 métodos de API
-      </small>
 
-    </footer>
+  
+  // 8. OBTENER EPISODIO POR ID
+ 
 
-  </div>
+  obtenerEpisodio(id: number): void {
 
-</div> 
+    if (!id || id < 1) {
+      this.mensaje = 'Introduce un ID de episodio válido';
+      return;
+    }
+
+    this.cargando = true;
+    this.mensaje = '';
+
+    this.servicio.obtenerEpisodio(id)
+      .pipe(
+        finalize(() => {
+          this.cargando = false;
+          this.cdr.detectChanges();
+        })
+      )
+      .subscribe({
+
+        next: (episodio) => {
+
+          this.episodios = [episodio];
+
+          console.log(
+            '8. EPISODIO POR ID:',
+            episodio
+          );
+
+        },
+
+        error: (error) => {
+
+          console.error('ERROR:', error);
+
+          this.episodios = [];
+          this.mensaje =
+            'No se encontró el episodio';
+
+        }
+
+      });
+  }
+
+
+  
+  // 9. OBTENER TODAS LAS UBICACIONES
+  
+
+  obtenerUbicaciones(): void {
+
+    this.cargando = true;
+    this.mensaje = '';
+
+    this.servicio.obtenerUbicaciones()
+      .pipe(
+        finalize(() => {
+          this.cargando = false;
+          this.cdr.detectChanges();
+        })
+      )
+      .subscribe({
+
+        next: (respuesta) => {
+
+          this.ubicaciones = respuesta.results;
+
+          console.log(
+            '9. TODAS LAS UBICACIONES:',
+            respuesta
+          );
+
+        },
+
+        error: (error) => {
+
+          console.error('ERROR:', error);
+
+          this.ubicaciones = [];
+          this.mensaje =
+            'Error al obtener las ubicaciones';
+
+        }
+
+      });
+  }
+
+
+  
+  // 10. OBTENER UBICACIÓN POR ID
+ 
+
+  obtenerUbicacion(id: number): void {
+
+    if (!id || id < 1) {
+      this.mensaje = 'Introduce un ID de ubicación válido';
+      return;
+    }
+
+    this.cargando = true;
+    this.mensaje = '';
+
+    this.servicio.obtenerUbicacion(id)
+      .pipe(
+        finalize(() => {
+          this.cargando = false;
+          this.cdr.detectChanges();
+        })
+      )
+      .subscribe({
+
+        next: (ubicacion) => {
+
+          this.ubicaciones = [ubicacion];
+
+          console.log(
+            '10. UBICACIÓN POR ID:',
+            ubicacion
+          );
+
+        },
+
+        error: (error) => {
+
+          console.error('ERROR:', error);
+
+          this.ubicaciones = [];
+          this.mensaje =
+            'No se encontró la ubicación';
+
+        }
+
+      });
+  }
+
+}
